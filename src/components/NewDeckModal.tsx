@@ -74,14 +74,11 @@ function NewDeckModal({ isOpen, onClose }: NewDeckModalProps) {
         .insert({
           player_id: players.id,
           name,
-          format,
-          commander: format === 'Commander' ? commander : null,
-          is_white: colors.white,
-          is_blue: colors.blue,
-          is_black: colors.black,
-          is_red: colors.red,
-          is_green: colors.green,
-          is_colorless: colors.colorless,
+          properties: {
+            format,
+            commander: format === 'Commander' ? commander : null,
+            colorIdentity: colors
+          }
         });
 
       if (deckError) throw deckError;
@@ -266,10 +263,10 @@ function ColorButton({
     const colorClasses = {
       white: "bg-yellow-100",
       blue: "bg-blue-500",
-      black: "bg-white/20", // Changed to a lighter shade for better contrast
+      black: "bg-white/20",
       red: "bg-red-500",
       green: "bg-green-500",
-      colorless: "bg-gray-400", // Changed to light gray
+      colorless: "bg-gray-400",
     }[color];
 
     return `${baseClasses} ${activeClasses} ${disabledClasses} ${colorClasses}`;

@@ -3,17 +3,23 @@ import { Trophy, Users, PlusCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
 
+interface DeckProperties {
+  format: string;
+  commander: string | null;
+  colorIdentity: {
+    white: boolean;
+    blue: boolean;
+    black: boolean;
+    red: boolean;
+    green: boolean;
+    colorless: boolean;
+  };
+}
+
 interface Deck {
   id: string;
   name: string;
-  format: string;
-  commander: string | null;
-  is_white: boolean;
-  is_blue: boolean;
-  is_black: boolean;
-  is_red: boolean;
-  is_green: boolean;
-  is_colorless: boolean;
+  properties: DeckProperties;
 }
 
 interface DeckWithStats extends Deck {
@@ -124,21 +130,21 @@ interface DeckCardProps extends DeckWithStats {
   onNewGame: (deckId: string) => void;
 }
 
-function DeckCard({ id, name, format, commander, winRate, totalGames, onNewGame }: DeckCardProps) {
+function DeckCard({ id, name, properties, winRate, totalGames, onNewGame }: DeckCardProps) {
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
       <h3 className="text-xl font-semibold text-white mb-2 break-words">{name}</h3>
       <div className="space-y-2 mb-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="px-2 py-1 bg-white/5 rounded text-sm text-white/80">{format}</span>
+          <span className="px-2 py-1 bg-white/5 rounded text-sm text-white/80">{properties.format}</span>
           <div className="flex items-center space-x-1">
             <Users className="w-4 h-4 text-white/60" />
             <span className="text-sm text-white/60">{totalGames} games</span>
           </div>
         </div>
-        {commander && (
+        {properties.commander && (
           <p className="text-white/60 text-sm break-words">
-            {commander}
+            {properties.commander}
           </p>
         )}
       </div>
