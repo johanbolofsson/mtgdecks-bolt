@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 *.local
 *.sql
+.bolt
 
 # Editor directories and files
 .vscode/*
