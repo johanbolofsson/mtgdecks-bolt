@@ -32,12 +32,12 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex justify-center p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-8">
           <div className="flex items-center space-x-2">
             <Layout className="w-10 h-10 text-white" />
-            <span className="text-2xl font-bold text-white">MTG Tracker</span>
+            <span className="text-2xl font-bold text-white">MTG Deck Stats</span>
           </div>
         </div>
 
