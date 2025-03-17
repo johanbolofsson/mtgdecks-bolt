@@ -37,7 +37,7 @@ function Login() {
         <div className="flex justify-center mb-8">
           <div className="flex items-center space-x-2">
             <Layout className="w-10 h-10 text-white" />
-            <span className="text-2xl font-bold text-white">MTG Deck Stats</span>
+            <span className="text-2xl font-bold text-white">MtG Deck Stats</span>
           </div>
         </div>
 
