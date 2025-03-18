@@ -31,12 +31,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const createPlayer = async (userId: string, email: string) => {
+    const { error } = await supabase
+      .from('players')
+      .insert([
+        {
+          user_id: userId,
+          username: email
+        }
+      ]);
+
+    if (error) throw error;
+  };
+
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
+    
     if (error) throw error;
+    
+    // If signup was successful and we have a user, create their player record
+    if (data.user) {
+      await createPlayer(data.user.id, email);
+    }
   };
 
   const signIn = async (email: string, password: string) => {
