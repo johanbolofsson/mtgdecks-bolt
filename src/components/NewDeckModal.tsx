@@ -177,41 +177,47 @@ function NewDeckModal({ isOpen, onClose }: NewDeckModalProps) {
             <label className="block text-sm font-medium text-white/60 mb-2">
               Color Identity
             </label>
-            <div className="flex flex-wrap gap-2">
-              <ColorButton
+            <div className="flex">
+              <ColorCheckbox
                 color="white"
-                active={colors.white}
-                onClick={() => handleColorChange('white')}
+                label="White"
+                checked={colors.white}
+                onChange={() => handleColorChange('white')}
                 disabled={colors.colorless}
               />
-              <ColorButton
+              <ColorCheckbox
                 color="blue"
-                active={colors.blue}
-                onClick={() => handleColorChange('blue')}
+                label="Blue"
+                checked={colors.blue}
+                onChange={() => handleColorChange('blue')}
                 disabled={colors.colorless}
               />
-              <ColorButton
+              <ColorCheckbox
                 color="black"
-                active={colors.black}
-                onClick={() => handleColorChange('black')}
+                label="Black"
+                checked={colors.black}
+                onChange={() => handleColorChange('black')}
                 disabled={colors.colorless}
               />
-              <ColorButton
+              <ColorCheckbox
                 color="red"
-                active={colors.red}
-                onClick={() => handleColorChange('red')}
+                label="Red"
+                checked={colors.red}
+                onChange={() => handleColorChange('red')}
                 disabled={colors.colorless}
               />
-              <ColorButton
+              <ColorCheckbox
                 color="green"
-                active={colors.green}
-                onClick={() => handleColorChange('green')}
+                label="Green"
+                checked={colors.green}
+                onChange={() => handleColorChange('green')}
                 disabled={colors.colorless}
               />
-              <ColorButton
+              <ColorCheckbox
                 color="colorless"
-                active={colors.colorless}
-                onClick={() => handleColorChange('colorless')}
+                label="Colorless"
+                checked={colors.colorless}
+                onChange={() => handleColorChange('colorless')}
                 disabled={Object.values(colors).some((v, i) => i < 5 && v)}
               />
             </div>
@@ -244,42 +250,30 @@ function NewDeckModal({ isOpen, onClose }: NewDeckModalProps) {
   );
 }
 
-function ColorButton({ 
-  color, 
-  active, 
-  onClick, 
+function ColorCheckbox({ 
+  label,
+  checked, 
+  onChange, 
   disabled 
 }: { 
-  color: string; 
-  active: boolean; 
-  onClick: () => void;
+  color: string;
+  label: string;
+  checked: boolean;
+  onChange: () => void;
   disabled: boolean;
 }) {
-  const getColorClasses = () => {
-    const baseClasses = "w-10 h-10 rounded-lg border-2 transition-all";
-    const activeClasses = active ? "border-white shadow-lg" : "border-transparent";
-    const disabledClasses = disabled ? "opacity-30 cursor-not-allowed" : "hover:border-white/60 cursor-pointer";
-    
-    const colorClasses = {
-      white: "bg-yellow-100",
-      blue: "bg-blue-500",
-      black: "bg-white/20",
-      red: "bg-red-500",
-      green: "bg-green-500",
-      colorless: "bg-gray-400",
-    }[color];
-
-    return `${baseClasses} ${activeClasses} ${disabledClasses} ${colorClasses}`;
-  };
-
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={getColorClasses()}
-      aria-label={`Toggle ${color} color`}
-    />
+    <div className='flex items-center me-4'>
+        <input
+          id={label}
+          type="checkbox"
+          checked={checked}
+          onChange={onChange}
+          disabled={disabled}
+          className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+        />
+        <label htmlFor={label} className={`ms-2 text-white/60 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`} >{label}</label>
+    </div>
   );
 }
 
