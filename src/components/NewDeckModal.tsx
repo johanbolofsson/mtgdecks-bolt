@@ -177,7 +177,7 @@ function NewDeckModal({ isOpen, onClose }: NewDeckModalProps) {
             <label className="block text-sm font-medium text-white/60 mb-2">
               Color Identity
             </label>
-            <div className="flex">
+            <div className="flex flex-wrap gap-2">
               <ColorCheckbox
                 color="white"
                 label="White"
