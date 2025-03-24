@@ -108,7 +108,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
 
   const handleWinStateChange = (playerId: string, won: boolean) => {
     setParticipants(participants.map(p => 
-      p.playerId === playerId ? { ...p, won } : p
+      p.playerId === playerId ? { ...p, won } : { ...p, won: false }
     ));
   };
 
@@ -122,6 +122,12 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
     try {
       setSubmitting(true);
       setError(null);
+
+      // Validate that exactly one player has won
+      const winners = participants.filter(p => p.won);
+      if (winners.length !== 1) {
+        throw new Error('Exactly one player must be marked as the winner');
+      }
 
       // Create new game
       const { data: gameData, error: gameError } = await supabase
@@ -165,9 +171,11 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
     player.decks.some(deck => deck.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
+  const hasWinner = participants.some(p => p.won);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gray-900 rounded-xl w-full max-w-2xl">
+      <div className="bg-gray-900 rounded-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="p-6 border-b border-white/10">
           <div className="flex justify-between items-center">
             <h2 className="text-xl font-semibold text-white">New Game</h2>
@@ -180,7 +188,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-grow">
           {loading ? (
             <div className="text-center text-white/60">Loading...</div>
           ) : (
@@ -245,26 +253,15 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                           </select>
                         </div>
                         <div className="flex items-center space-x-4">
-                          <div className="flex items-center space-x-2">
-                            <label className="text-white/60">
-                              <input
-                                type="radio"
-                                checked={participant.won}
-                                onChange={() => handleWinStateChange(participant.playerId, true)}
-                                className="mr-2"
-                              />
-                              Won
-                            </label>
-                            <label className="text-white/60">
-                              <input
-                                type="radio"
-                                checked={!participant.won}
-                                onChange={() => handleWinStateChange(participant.playerId, false)}
-                                className="mr-2"
-                              />
-                              Lost
-                            </label>
-                          </div>
+                          <label className="inline-flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              checked={participant.won}
+                              onChange={() => handleWinStateChange(participant.playerId, true)}
+                              className="text-indigo-500 bg-white/10 border-white/20 focus:ring-indigo-500"
+                            />
+                            <span className="text-white/60">Winner</span>
+                          </label>
                           {participant.playerId !== currentPlayer?.id && (
                             <button
                               onClick={() => handleRemovePlayer(participant.playerId)}
@@ -339,7 +336,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || submitting}
+            disabled={loading || submitting || !hasWinner || participants.length < 2}
             className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating...' : 'Create Game'}
