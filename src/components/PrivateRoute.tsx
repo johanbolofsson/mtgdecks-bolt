@@ -6,10 +6,11 @@ export function PrivateRoute({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-white">Checking authentication...</div>
       </div>
     );
+    
   }
 
   if (!user) {
