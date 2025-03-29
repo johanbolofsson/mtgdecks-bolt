@@ -225,9 +225,9 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-sm font-medium text-white/60">Game Participants</h3>
-                <div className="space-y-2">
+              <div>
+                <h3 className="block text-sm font-medium text-white/60 mb-2">Game Participants</h3>
+                <div className='flex flex-col gap-4'>
                   {participants.map((participant) => {
                     const player = participant.playerId === currentPlayer?.id 
                       ? currentPlayer 
@@ -236,11 +236,13 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                     return player ? (
                       <div
                         key={participant.playerId}
-                        className="flex items-center justify-between p-4 bg-white/5 rounded-lg"
+                        className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 bg-white/5 rounded-lg"
                       >
-                        <div className="space-y-2">
+                        <div>
                           <p className="text-white font-medium">{player.username}</p>
-                          <select
+                        </div>
+                        <div>
+                        <select
                             value={participant.deckId}
                             onChange={(e) => handleDeckChange(participant.playerId, e.target.value)}
                             className="px-2 py-1 text-sm bg-white/10 rounded-lg text-white/80 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -251,7 +253,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                               </option>
                             ))}
                           </select>
-                        </div>
+                          </div>
                         <div className="flex items-center space-x-4">
                           <label className="inline-flex items-center space-x-2">
                             <input
@@ -274,9 +276,8 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                       </div>
                     ) : null;
                   })}
-                </div>
               </div>
-
+              </div>
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
                   Add Players (Optional)
