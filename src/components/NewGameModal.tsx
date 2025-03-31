@@ -123,12 +123,6 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
       setSubmitting(true);
       setError(null);
 
-      // Validate that exactly one player has won
-      const winners = participants.filter(p => p.won);
-      if (winners.length !== 1) {
-        throw new Error('Exactly one player must be marked as the winner');
-      }
-
       // Create new game
       const { data: gameData, error: gameError } = await supabase
         .from('games')
