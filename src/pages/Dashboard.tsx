@@ -53,7 +53,8 @@ function Dashboard({ onNewGame }: DashboardProps) {
         const { data: decksData, error: decksError } = await supabase
           .from('decks')
           .select('*')
-          .eq('player_id', player.id);
+          .eq('player_id', player.id)
+          .order('name')
 
         if (decksError) throw decksError;
 
@@ -76,8 +77,7 @@ function Dashboard({ onNewGame }: DashboardProps) {
             winRate,
           };
         }));
-
-        setDecks(decksWithStats);
+        setDecks(decksWithStats.sort((d1, d2) => d2.winRate - d1.winRate || d2.totalGames - d1.totalGames));
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
