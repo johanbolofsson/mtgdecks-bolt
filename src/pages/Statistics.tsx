@@ -14,6 +14,11 @@ interface Statistics {
     gamesPlayed: number;
     winRate: number;
   } | null;
+  leastPlayedDeck: {
+    name: string;
+    gamesPlayed: number;
+    winRate: number;
+  } | null;
   recentGames: Array<{
     id: string;
     played_at: string;
@@ -32,6 +37,7 @@ function Statistics() {
     winRate: 0,
     totalPlayers: 0,
     mostPlayedDeck: null,
+    leastPlayedDeck: null,
     recentGames: [],
   });
   const [loading, setLoading] = useState(true);
@@ -112,6 +118,14 @@ function Statistics() {
             winRate: Math.round((deck.wins / deck.gamesPlayed) * 100),
           }))[0] || null;
 
+          const leastPlayedDeck = Object.values(deckStats || {})
+          .sort((a, b) => a.gamesPlayed - b.gamesPlayed)
+          .map(deck => ({
+            name: deck.name,
+            gamesPlayed: deck.gamesPlayed,
+            winRate: Math.round((deck.wins / deck.gamesPlayed) * 100),
+          }))[0] || null;
+
         // Get total unique players played against
         const uniquePlayers = new Set(
           participations?.flatMap(p => 
@@ -140,6 +154,7 @@ function Statistics() {
           winRate,
           totalPlayers: uniquePlayers.size,
           mostPlayedDeck,
+          leastPlayedDeck,
           recentGames,
         });
       } catch (err) {
@@ -195,7 +210,7 @@ function Statistics() {
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Most Played Deck */}
         {stats.mostPlayedDeck && (
           <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
@@ -210,6 +225,26 @@ function Statistics() {
                 <div>
                   <p className="text-sm text-white/60">Win Rate</p>
                   <p className="text-lg font-semibold text-white">{stats.mostPlayedDeck.winRate}%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Least Played Deck */}
+        {stats.leastPlayedDeck && (
+          <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-white mb-4">Least Played Deck</h2>
+            <div className="space-y-4">
+              <p className="text-2xl font-bold text-white">{stats.leastPlayedDeck.name}</p>
+              <div className="flex space-x-4">
+                <div>
+                  <p className="text-sm text-white/60">Games Played</p>
+                  <p className="text-lg font-semibold text-white">{stats.leastPlayedDeck.gamesPlayed}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-white/60">Win Rate</p>
+                  <p className="text-lg font-semibold text-white">{stats.leastPlayedDeck.winRate}%</p>
                 </div>
               </div>
             </div>
