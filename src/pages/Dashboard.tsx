@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, Users, PlusCircle } from 'lucide-react';
+import { Trophy, Users, PlusCircle, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import EditDeckModal from '../components/EditDeckModal';
 
 interface DeckProperties {
   format: string;
@@ -14,6 +15,7 @@ interface DeckProperties {
     green: boolean;
     colorless: boolean;
   };
+  inactive?: boolean;
 }
 
 interface Deck {
@@ -36,6 +38,7 @@ function Dashboard({ onNewGame }: DashboardProps) {
   const [decks, setDecks] = useState<DeckWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingDeck, setEditingDeck] = useState<DeckWithStats | null>(null);
 
   useEffect(() => {
     async function fetchDecks() {
@@ -54,7 +57,7 @@ function Dashboard({ onNewGame }: DashboardProps) {
           .from('decks')
           .select('*')
           .eq('player_id', player.id)
-          .order('name')
+          .order('name');
 
         if (decksError) throw decksError;
 
@@ -119,21 +122,43 @@ function Dashboard({ onNewGame }: DashboardProps) {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {decks.map((deck) => (
-          <DeckCard key={deck.id} {...deck} onNewGame={onNewGame} />
+          <DeckCard 
+            key={deck.id} 
+            {...deck} 
+            onNewGame={onNewGame}
+            onEdit={() => setEditingDeck(deck)}
+          />
         ))}
       </div>
+
+      {editingDeck && (
+        <EditDeckModal
+          isOpen={true}
+          onClose={() => setEditingDeck(null)}
+          deck={editingDeck}
+        />
+      )}
     </div>
   );
 }
 
 interface DeckCardProps extends DeckWithStats {
   onNewGame: (deckId: string) => void;
+  onEdit: () => void;
 }
 
-function DeckCard({ id, name, properties, winRate, totalGames, onNewGame }: DeckCardProps) {
+function DeckCard({ id, name, properties, winRate, totalGames, onNewGame, onEdit }: DeckCardProps) {
   return (
-    <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
-      <h3 className="text-xl font-semibold text-white mb-2 break-words">{name}</h3>
+    <div className={`bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20 ${properties.inactive ? 'opacity-50' : ''}`}>
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-xl font-semibold text-white break-words">{name}</h3>
+        <button
+          onClick={onEdit}
+          className="p-1 text-white/60 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+        >
+          <Settings className="w-5 h-5" />
+        </button>
+      </div>
       <div className="space-y-2 mb-4">
         <div className="flex flex-wrap items-center gap-2">
           <span className="px-2 py-1 bg-white/5 rounded text-sm text-white/80">{properties.format}</span>
@@ -141,6 +166,9 @@ function DeckCard({ id, name, properties, winRate, totalGames, onNewGame }: Deck
             <Users className="w-4 h-4 text-white/60" />
             <span className="text-sm text-white/60">{totalGames} games</span>
           </div>
+          {properties.inactive && (
+            <span className="px-2 py-1 bg-white/5 rounded text-sm text-white/40">Inactive</span>
+          )}
         </div>
         {properties.commander && (
           <p className="text-white/60 text-sm break-words">
@@ -158,7 +186,8 @@ function DeckCard({ id, name, properties, winRate, totalGames, onNewGame }: Deck
         </div>
         <button
           onClick={() => onNewGame(id)}
-          className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors"
+          disabled={properties.inactive}
+          className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Add Game</span>

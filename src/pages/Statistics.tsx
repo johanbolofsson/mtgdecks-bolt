@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Trophy, ScrollText, TrendingUp, Users, Calendar, Clock } from 'lucide-react';
+import { Trophy, ScrollText, TrendingUp, Users, Calendar, Clock, MapPin, AlertTriangle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 interface Statistics {
   totalGames: number;
@@ -22,10 +22,16 @@ interface Statistics {
   recentGames: Array<{
     id: string;
     played_at: string;
+    location: string | null;
     winner: {
       username: string;
       display_name: string | null;
-    };
+    } | null;
+  }>;
+  inactiveDecksSummary: Array<{
+    name: string;
+    lastPlayed: string | null;
+    daysSinceLastPlayed: number | null;
   }>;
 }
 
@@ -39,9 +45,11 @@ function Statistics() {
     mostPlayedDeck: null,
     leastPlayedDeck: null,
     recentGames: [],
+    inactiveDecksSummary: [],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [includeInactive, setIncludeInactive] = useState(false);
 
   useEffect(() => {
     async function fetchStatistics() {
@@ -57,6 +65,19 @@ function Statistics() {
 
         if (playerError) throw playerError;
 
+        // Get all decks for the current player
+        const { data: decks, error: decksError } = await supabase
+          .from('decks')
+          .select('id, name, properties')
+          .eq('player_id', player.id);
+
+        if (decksError) throw decksError;
+
+        // Filter out inactive decks if not included
+        const filteredDecks = includeInactive 
+          ? decks 
+          : decks.filter(deck => !deck.properties.inactive);
+
         // Get all games and decks for the current player
         const { data: participations, error: gamesError } = await supabase
           .from('game_participants')
@@ -64,11 +85,13 @@ function Statistics() {
             won,
             deck:decks (
               id,
-              name
+              name,
+              properties
             ),
             game:games (
               id,
               played_at,
+              location,
               game_participants (
                 player:players (
                   username,
@@ -82,53 +105,80 @@ function Statistics() {
 
         if (gamesError) throw gamesError;
 
+        // Filter participations to only include active decks if necessary
+        const filteredParticipations = includeInactive
+          ? participations
+          : participations?.filter(p => !p.deck.properties.inactive);
+
         // Calculate statistics
-        const totalGames = participations?.length || 0;
-        const wins = participations?.filter(p => p.won)?.length || 0;
+        const totalGames = filteredParticipations?.length || 0;
+        const wins = filteredParticipations?.filter(p => p.won)?.length || 0;
         const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
 
-        // Get total decks
-        const { count: totalDecks, error: decksError } = await supabase
-          .from('decks')
-          .select('*', { count: 'exact', head: true })
-          .eq('player_id', player.id);
-
-        if (decksError) throw decksError;
-
-        // Calculate deck statistics
-        const deckStats = participations?.reduce((acc, game) => {
-          const deckId = game.deck.id;
-          if (!acc[deckId]) {
-            acc[deckId] = {
-              name: game.deck.name,
-              gamesPlayed: 0,
-              wins: 0,
-            };
-          }
-          acc[deckId].gamesPlayed++;
-          if (game.won) acc[deckId].wins++;
+        // Calculate deck statistics including decks with zero games
+        const deckStats = filteredDecks.reduce((acc, deck) => {
+          acc[deck.id] = {
+            name: deck.name,
+            gamesPlayed: 0,
+            wins: 0,
+            lastPlayed: null,
+          };
           return acc;
-        }, {} as Record<string, { name: string; gamesPlayed: number; wins: number; }>);
+        }, {} as Record<string, { 
+          name: string; 
+          gamesPlayed: number; 
+          wins: number; 
+          lastPlayed: string | null; 
+        }>);
 
-        const mostPlayedDeck = Object.values(deckStats || {})
+        // Update stats for decks that have been played
+        filteredParticipations?.forEach(game => {
+          const deckId = game.deck.id;
+          if (deckStats[deckId]) {
+            deckStats[deckId].gamesPlayed++;
+            if (game.won) deckStats[deckId].wins++;
+            const playedAt = game.game.played_at;
+            if (!deckStats[deckId].lastPlayed || playedAt > deckStats[deckId].lastPlayed) {
+              deckStats[deckId].lastPlayed = playedAt;
+            }
+          }
+        });
+
+        const mostPlayedDeck = Object.values(deckStats)
           .sort((a, b) => b.gamesPlayed - a.gamesPlayed)
           .map(deck => ({
             name: deck.name,
             gamesPlayed: deck.gamesPlayed,
-            winRate: Math.round((deck.wins / deck.gamesPlayed) * 100),
+            winRate: deck.gamesPlayed > 0 ? Math.round((deck.wins / deck.gamesPlayed) * 100) : 0,
           }))[0] || null;
 
-          const leastPlayedDeck = Object.values(deckStats || {})
+        const leastPlayedDeck = Object.values(deckStats)
           .sort((a, b) => a.gamesPlayed - b.gamesPlayed)
           .map(deck => ({
             name: deck.name,
             gamesPlayed: deck.gamesPlayed,
-            winRate: Math.round((deck.wins / deck.gamesPlayed) * 100),
+            winRate: deck.gamesPlayed > 0 ? Math.round((deck.wins / deck.gamesPlayed) * 100) : 0,
           }))[0] || null;
+
+        // Calculate inactive decks (not played in the last 30 days)
+        const inactiveDecksSummary = Object.values(deckStats)
+          .map(deck => ({
+            name: deck.name,
+            lastPlayed: deck.lastPlayed,
+            daysSinceLastPlayed: deck.lastPlayed 
+              ? differenceInDays(new Date(), new Date(deck.lastPlayed))
+              : null,
+          }))
+          .filter(deck => deck.daysSinceLastPlayed === null || deck.daysSinceLastPlayed > 30)
+          .sort((a, b) => {
+            if (a.lastPlayed === null) return -1;
+            if (b.lastPlayed === null) return 1;
+            return new Date(b.lastPlayed).getTime() - new Date(a.lastPlayed).getTime();
+          });
 
         // Get total unique players played against
         const uniquePlayers = new Set(
-          participations?.flatMap(p => 
+          filteredParticipations?.flatMap(p => 
             p.game.game_participants
               .filter(gp => gp.player.username !== player.username)
               .map(gp => gp.player.username)
@@ -136,26 +186,25 @@ function Statistics() {
         );
 
         // Get recent games
-        const recentGames = participations
+        const recentGames = filteredParticipations
           ?.map(p => ({
             id: p.game.id,
             played_at: p.game.played_at,
-            winner: p.game.game_participants.find(gp => gp.won)?.player || {
-              username: '',
-              display_name: null
-            },
+            location: p.game.location,
+            winner: p.game.game_participants.find(gp => gp.won)?.player || null,
           }))
           .sort((a, b) => new Date(b.played_at).getTime() - new Date(a.played_at).getTime())
           .slice(0, 5) || [];
 
         setStats({
           totalGames,
-          totalDecks: totalDecks || 0,
+          totalDecks: filteredDecks.length,
           winRate,
           totalPlayers: uniquePlayers.size,
           mostPlayedDeck,
           leastPlayedDeck,
           recentGames,
+          inactiveDecksSummary,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -165,7 +214,7 @@ function Statistics() {
     }
 
     fetchStatistics();
-  }, [user]);
+  }, [user, includeInactive]);
 
   if (loading) {
     return (
@@ -185,7 +234,18 @@ function Statistics() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-white">Statistics</h1>
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-white">Statistics</h1>
+        <label className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            checked={includeInactive}
+            onChange={(e) => setIncludeInactive(e.target.checked)}
+            className="w-4 h-4 text-indigo-500 bg-white/5 border-white/20 rounded focus:ring-indigo-500"
+          />
+          <span className="text-white/60">Include inactive decks</span>
+        </label>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
@@ -242,10 +302,12 @@ function Statistics() {
                   <p className="text-sm text-white/60">Games Played</p>
                   <p className="text-lg font-semibold text-white">{stats.leastPlayedDeck.gamesPlayed}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-white/60">Win Rate</p>
-                  <p className="text-lg font-semibold text-white">{stats.leastPlayedDeck.winRate}%</p>
-                </div>
+                {stats.leastPlayedDeck.gamesPlayed > 0 && (
+                  <div>
+                    <p className="text-sm text-white/60">Win Rate</p>
+                    <p className="text-lg font-semibold text-white">{stats.leastPlayedDeck.winRate}%</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -260,18 +322,51 @@ function Statistics() {
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 text-white/60" />
                   <span className="text-white/80">{format(new Date(game.played_at), 'MMM d, yyyy')}</span>
+                  {game.location && (
+                    <>
+                      <span className="text-white/40">•</span>
+                      <div className="flex items-center space-x-1">
+                        <MapPin className="w-4 h-4 text-white/60" />
+                        <span className="text-white/60">{game.location}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Trophy className="w-4 h-4 text-yellow-400" />
-                  <span className="text-white">
-                    {game.winner.display_name || game.winner.username}
-                  </span>
-                </div>
+                {game.winner && (
+                  <div className="flex items-center space-x-2">
+                    <Trophy className="w-4 h-4 text-yellow-400" />
+                    <span className="text-white">
+                      {game.winner.display_name || game.winner.username}
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </div>
+
+      {/* Inactive Decks */}
+      {stats.inactiveDecksSummary.length > 0 && (
+        <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-yellow-400" />
+            <h2 className="text-xl font-semibold text-white">Inactive Decks</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {stats.inactiveDecksSummary.map((deck, index) => (
+              <div key={index} className="bg-white/5 rounded-lg p-4">
+                <p className="font-medium text-white mb-2">{deck.name}</p>
+                <p className="text-sm text-white/60">
+                  {deck.lastPlayed
+                    ? `Last played ${differenceInDays(new Date(), new Date(deck.lastPlayed))} days ago`
+                    : 'Never played'}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
