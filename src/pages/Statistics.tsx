@@ -33,6 +33,14 @@ interface Statistics {
     lastPlayed: string | null;
     daysSinceLastPlayed: number | null;
   }>;
+  colorPopularity: {
+    white: number;
+    blue: number;
+    black: number;
+    red: number;
+    green: number;
+    colorless: number;
+  };
 }
 
 function Statistics() {
@@ -46,6 +54,14 @@ function Statistics() {
     leastPlayedDeck: null,
     recentGames: [],
     inactiveDecksSummary: [],
+    colorPopularity: {
+      white: 0,
+      blue: 0,
+      black: 0,
+      red: 0,
+      green: 0,
+      colorless: 0,
+    },
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +92,30 @@ function Statistics() {
         // Filter out inactive decks if not included
         const filteredDecks = includeInactive 
           ? decks 
-          : decks.filter(deck => !deck.properties.inactive);
+          : decks.filter(deck => !deck.properties?.inactive);
+
+        // Calculate color popularity
+        const colorPopularity = {
+          white: 0,
+          blue: 0,
+          black: 0,
+          red: 0,
+          green: 0,
+          colorless: 0,
+        };
+
+        filteredDecks.forEach(deck => {
+          const colorIdentity = deck.properties.colorIdentity;
+          if (colorIdentity.colorless) {
+            colorPopularity.colorless++;
+          } else {
+            if (colorIdentity.white) colorPopularity.white++;
+            if (colorIdentity.blue) colorPopularity.blue++;
+            if (colorIdentity.black) colorPopularity.black++;
+            if (colorIdentity.red) colorPopularity.red++;
+            if (colorIdentity.green) colorPopularity.green++;
+          }
+        });
 
         // Get all games and decks for the current player
         const { data: participations, error: gamesError } = await supabase
@@ -108,7 +147,7 @@ function Statistics() {
         // Filter participations to only include active decks if necessary
         const filteredParticipations = includeInactive
           ? participations
-          : participations?.filter(p => !p.deck.properties.inactive);
+          : participations?.filter(p => !p.deck.properties?.inactive);
 
         // Calculate statistics
         const totalGames = filteredParticipations?.length || 0;
@@ -205,6 +244,7 @@ function Statistics() {
           leastPlayedDeck,
           recentGames,
           inactiveDecksSummary,
+          colorPopularity,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
@@ -346,6 +386,19 @@ function Statistics() {
         </div>
       </div>
 
+      {/* Color Popularity */}
+      <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
+        <h2 className="text-xl font-semibold text-white mb-4">Most Popular Colors</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <ColorStatCard color="white" count={stats.colorPopularity.white} />
+          <ColorStatCard color="blue" count={stats.colorPopularity.blue} />
+          <ColorStatCard color="black" count={stats.colorPopularity.black} />
+          <ColorStatCard color="red" count={stats.colorPopularity.red} />
+          <ColorStatCard color="green" count={stats.colorPopularity.green} />
+          <ColorStatCard color="colorless" count={stats.colorPopularity.colorless} />
+        </div>
+      </div>
+
       {/* Inactive Decks */}
       {stats.inactiveDecksSummary.length > 0 && (
         <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6">
@@ -389,6 +442,36 @@ function StatCard({
           <p className="text-2xl font-bold text-white">{value}</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ColorStatCard({ color, count }: { color: string; count: number }) {
+  const getColorClasses = () => {
+    switch (color) {
+      case 'white':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'blue':
+        return 'bg-blue-100 text-blue-800';
+      case 'black':
+        return 'bg-gray-800 text-gray-100';
+      case 'red':
+        return 'bg-red-100 text-red-800';
+      case 'green':
+        return 'bg-green-100 text-green-800';
+      case 'colorless':
+        return 'bg-gray-100 text-gray-800';
+      default:
+        return 'bg-white/5 text-white';
+    }
+  };
+
+  return (
+    <div className="bg-white/5 rounded-lg p-4 flex flex-col items-center">
+      <div className={`w-8 h-8 rounded-full ${getColorClasses()} flex items-center justify-center mb-2`}>
+        {count}
+      </div>
+      <span className="text-white/60 capitalize">{color}</span>
     </div>
   );
 }

@@ -70,7 +70,7 @@ function EditDeckModal({ isOpen, onClose, deck }: EditDeckModalProps) {
             format,
             commander: format === 'Commander' ? commander : null,
             colorIdentity: colors,
-            inactive,
+            inactive
           }
         })
         .eq('id', deck.id);
