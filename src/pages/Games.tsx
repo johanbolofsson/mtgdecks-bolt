@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { Trophy, Users, MapPin } from 'lucide-react';
+import { Trophy, Users, MapPin, Settings } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth';
+import EditGameModal from '../components/EditGameModal';
 
 interface GameParticipant {
+  id: string;
   player: {
     username: string;
     display_name: string | null;
@@ -13,6 +15,8 @@ interface GameParticipant {
     name: string;
   };
   won: boolean;
+  player_id: string;
+  deck_id: string;
 }
 
 interface Game {
@@ -27,6 +31,7 @@ function Games() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editingGame, setEditingGame] = useState<Game | null>(null);
 
   useEffect(() => {
     async function fetchGames() {
@@ -50,6 +55,9 @@ function Games() {
             played_at,
             location,
             game_participants!inner (
+              id,
+              player_id,
+              deck_id,
               won,
               player:players (username, display_name),
               deck:decks (name)
@@ -65,6 +73,9 @@ function Games() {
           const { data: allParticipants, error: participantsError } = await supabase
             .from('game_participants')
             .select(`
+              id,
+              player_id,
+              deck_id,
               won,
               player:players (username, display_name),
               deck:decks (name)
@@ -127,40 +138,68 @@ function Games() {
 
       <div className="space-y-6">
         {games.map((game) => (
-          <GameCard key={game.id} {...game} />
+          <GameCard 
+            key={game.id} 
+            game={game}
+            onEdit={() => setEditingGame(game)}
+          />
         ))}
       </div>
+
+      {editingGame && (
+        <EditGameModal
+          isOpen={true}
+          onClose={() => setEditingGame(null)}
+          gameId={editingGame.id}
+          initialData={{
+            played_at: editingGame.played_at,
+            location: editingGame.location,
+            participants: editingGame.game_participants.map(p => ({
+              id: p.id,
+              playerId: p.player_id,
+              deckId: p.deck_id,
+              won: p.won,
+            })),
+          }}
+        />
+      )}
     </div>
   );
 }
 
-function GameCard({ played_at, location, game_participants }: Game) {
-  const date = new Date(played_at);
+function GameCard({ game, onEdit }: { game: Game; onEdit: () => void }) {
+  const date = new Date(game.played_at);
 
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-xl p-6 border border-white/20">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <p className="text-white/60">{format(date, 'MMMM d, yyyy')}</p>
-          <p className="text-sm text-white/40">{format(date, 'h:mm a')}</p>
+          <p className="text-sm text-white/40">{format(date, 'HH:mm')}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4">
-          {location && (
+          {game.location && (
             <div className="flex items-center space-x-2 text-white/60">
               <MapPin className="w-4 h-4" />
-              <span>{location}</span>
+              <span>{game.location}</span>
             </div>
           )}
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-white/60" />
-            <span className="text-white/60">{game_participants.length} players</span>
+            <span className="text-white/60">{game.game_participants.length} players</span>
           </div>
+          <button
+            onClick={onEdit}
+            className="p-1 text-white/60 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
       <div className="space-y-4">
-        {game_participants.map((participant, index) => (
-          <div key={index} className="flex items-center justify-between">
+        {game.game_participants.map((participant) => (
+          <div key={participant.id} className="flex items-center justify-between">
             <div className="flex-grow">
               <div className="flex items-center space-x-2">
                 <p className="text-white/60">

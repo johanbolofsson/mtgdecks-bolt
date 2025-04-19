@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { Users, PlusCircle, Trophy, Layout, Menu, X, BarChart, LogOut } from 'lucide-react';
+import { Users, PlusCircle, Trophy, Layout, Menu, X, BarChart, LogOut, ScrollText, UserCircle } from 'lucide-react';
 import Dashboard from './pages/Dashboard';
 import Games from './pages/Games';
 import Players from './pages/Players';
 import Statistics from './pages/Statistics';
+import Profile from './pages/Profile';
 import Login from './pages/Login';
 import NewGameModal from './components/NewGameModal';
 import NewDeckModal from './components/NewDeckModal';
@@ -43,9 +44,11 @@ function AppContent() {
 
             {/* Desktop navigation */}
             <div className="hidden md:flex items-center space-x-4">
+              <NavLink to="/decks" icon={<ScrollText />} text="Decks" />
               <NavLink to="/games" icon={<Trophy />} text="Games" />
               <NavLink to="/players" icon={<Users />} text="Players" />
               <NavLink to="/statistics" icon={<BarChart />} text="Statistics" />
+              <NavLink to="/profile" icon={<UserCircle />} text="Profile" />
               <button 
                 onClick={() => setIsNewDeckModalOpen(true)} 
                 className="flex items-center space-x-1 px-4 py-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 text-white transition-colors"
@@ -67,9 +70,11 @@ function AppContent() {
         {/* Mobile navigation */}
         <div className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}>
           <div className="px-2 pt-2 pb-3 space-y-1">
+            <MobileNavLink to="/decks" icon={<ScrollText />} text="Decks" onClick={() => setIsMenuOpen(false)} />
             <MobileNavLink to="/games" icon={<Trophy />} text="Games" onClick={() => setIsMenuOpen(false)} />
             <MobileNavLink to="/players" icon={<Users />} text="Players" onClick={() => setIsMenuOpen(false)} />
             <MobileNavLink to="/statistics" icon={<BarChart />} text="Statistics" onClick={() => setIsMenuOpen(false)} />
+            <MobileNavLink to="/profile" icon={<UserCircle />} text="Profile" onClick={() => setIsMenuOpen(false)} />
             <button 
               onClick={() => {
                 setIsMenuOpen(false);
@@ -99,6 +104,11 @@ function AppContent() {
               <Dashboard onNewGame={handleNewGame} />
             </PrivateRoute>
           } />
+          <Route path="/decks" element={
+            <PrivateRoute>
+              <Dashboard onNewGame={handleNewGame} />
+            </PrivateRoute>
+          } />
           <Route path="/games" element={
             <PrivateRoute>
               <Games />
@@ -112,6 +122,11 @@ function AppContent() {
           <Route path="/statistics" element={
             <PrivateRoute>
               <Statistics />
+            </PrivateRoute>
+          } />
+          <Route path="/profile" element={
+            <PrivateRoute>
+              <Profile />
             </PrivateRoute>
           } />
         </Routes>
