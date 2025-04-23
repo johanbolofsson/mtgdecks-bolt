@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -31,20 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const createPlayer = async (userId: string, email: string) => {
+  const createPlayer = async (userId: string, email: string, displayName: string) => {
     const { error } = await supabase
       .from('players')
       .insert([
         {
           user_id: userId,
-          username: email
+          username: email,
+          display_name: displayName
         }
       ]);
 
     if (error) throw error;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, displayName: string) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -54,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // If signup was successful and we have a user, create their player record
     if (data.user) {
-      await createPlayer(data.user.id, email);
+      await createPlayer(data.user.id, email, displayName);
     }
   };
 

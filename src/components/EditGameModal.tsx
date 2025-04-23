@@ -118,7 +118,7 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
 
   const handleWinStateChange = (playerId: string, won: boolean) => {
     setParticipants(participants.map(p => 
-      p.playerId === playerId ? { ...p, won } : { ...p, won: false }
+      p.playerId === playerId ? { ...p, won } : { ...p, won: won ? false : p.won }
     ));
   };
 
@@ -144,27 +144,66 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
 
       if (gameError) throw gameError;
 
-      // Delete existing participants
-      const { error: deleteError } = await supabase
+      // Get all existing participants for this game
+      const { data: existingParticipants, error: existingError } = await supabase
         .from('game_participants')
-        .delete()
+        .select('id, player_id')
         .eq('game_id', gameId);
 
-      if (deleteError) throw deleteError;
+      if (existingError) throw existingError;
 
-      // Create new participants
-      const { error: participantsError } = await supabase
-        .from('game_participants')
-        .insert(
-          participants.map(p => ({
-            game_id: gameId,
-            player_id: p.playerId,
-            deck_id: p.deckId,
-            won: p.won
-          }))
-        );
+      // Create a map of existing participants for quick lookup
+      const existingParticipantMap = new Map(
+        existingParticipants?.map(p => [p.player_id, p.id]) || []
+      );
 
-      if (participantsError) throw participantsError;
+      // Update or insert participants
+      for (const participant of participants) {
+        const existingId = existingParticipantMap.get(participant.playerId);
+
+        if (existingId) {
+          // Update existing participant
+          const { error: updateError } = await supabase
+            .from('game_participants')
+            .update({
+              deck_id: participant.deckId,
+              won: participant.won
+            })
+            .eq('id', existingId);
+
+          if (updateError) throw updateError;
+        } else {
+          // Insert new participant
+          const { error: insertError } = await supabase
+            .from('game_participants')
+            .insert({
+              game_id: gameId,
+              player_id: participant.playerId,
+              deck_id: participant.deckId,
+              won: participant.won
+            });
+
+          if (insertError) throw insertError;
+        }
+      }
+
+      // Delete participants that are no longer in the game
+      const currentParticipantIds = participants.map(p => p.playerId);
+      if (existingParticipants && existingParticipants.length > 0) {
+        const participantsToRemove = existingParticipants
+          .filter(p => !currentParticipantIds.includes(p.player_id))
+          .map(p => p.id);
+
+        if (participantsToRemove.length > 0) {
+          const { error: deleteError } = await supabase
+            .from('game_participants')
+            .delete()
+            .eq('game_id', gameId)
+            .in('id', participantsToRemove);
+
+          if (deleteError) throw deleteError;
+        }
+      }
 
       onClose();
       window.location.reload();
@@ -266,10 +305,10 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
                         <div className="flex items-center space-x-4">
                           <label className="inline-flex items-center space-x-2">
                             <input
-                              type="radio"
+                              type="checkbox"
                               checked={participant.won}
-                              onChange={() => handleWinStateChange(participant.playerId, true)}
-                              className="text-indigo-500 bg-white/10 border-white/20 focus:ring-indigo-500"
+                              onChange={(e) => handleWinStateChange(participant.playerId, e.target.checked)}
+                              className="text-indigo-500 bg-white/10 border-white/20 rounded focus:ring-indigo-500"
                             />
                             <span className="text-white/60">Winner</span>
                           </label>

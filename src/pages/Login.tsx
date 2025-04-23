@@ -6,6 +6,7 @@ import { useAuth } from '../lib/auth';
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,7 @@ function Login() {
 
     try {
       if (isSignUp) {
-        await signUp(email, password);
+        await signUp(email, password, displayName);
       } else {
         await signIn(email, password);
       }
@@ -61,6 +62,23 @@ function Login() {
                 required
               />
             </div>
+
+            {isSignUp && (
+              <div>
+                <label htmlFor="displayName" className="block text-sm font-medium text-white/60 mb-2">
+                  Display Name
+                </label>
+                <input
+                  id="displayName"
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="Enter your display name"
+                  required
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-white/60 mb-2">

@@ -108,7 +108,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
 
   const handleWinStateChange = (playerId: string, won: boolean) => {
     setParticipants(participants.map(p => 
-      p.playerId === playerId ? { ...p, won } : { ...p, won: false }
+      p.playerId === playerId ? { ...p, won } : { ...p, won: won ? false : p.won }
     ));
   };
 
@@ -164,8 +164,6 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
     player.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     player.decks.some(deck => deck.name.toLowerCase().includes(searchQuery.toLowerCase()))
   );
-
-  const hasWinner = participants.some(p => p.won);
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
@@ -236,7 +234,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                           <p className="text-white font-medium">{player.username}</p>
                         </div>
                         <div>
-                        <select
+                          <select
                             value={participant.deckId}
                             onChange={(e) => handleDeckChange(participant.playerId, e.target.value)}
                             className="px-2 py-1 text-sm bg-white/10 rounded-lg text-white/80 border border-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -247,14 +245,14 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                               </option>
                             ))}
                           </select>
-                          </div>
+                        </div>
                         <div className="flex items-center space-x-4">
                           <label className="inline-flex items-center space-x-2">
                             <input
-                              type="radio"
+                              type="checkbox"
                               checked={participant.won}
-                              onChange={() => handleWinStateChange(participant.playerId, true)}
-                              className="text-indigo-500 bg-white/10 border-white/20 focus:ring-indigo-500"
+                              onChange={(e) => handleWinStateChange(participant.playerId, e.target.checked)}
+                              className="text-indigo-500 bg-white/10 border-white/20 rounded focus:ring-indigo-500"
                             />
                             <span className="text-white/60">Winner</span>
                           </label>
@@ -270,8 +268,9 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
                       </div>
                     ) : null;
                   })}
+                </div>
               </div>
-              </div>
+
               <div>
                 <label className="block text-sm font-medium text-white/60 mb-2">
                   Add Players (Optional)
@@ -331,7 +330,7 @@ function NewGameModal({ isOpen, onClose, selectedDeckId }: NewGameModalProps) {
           </button>
           <button
             onClick={handleSubmit}
-            disabled={loading || submitting}
+            disabled={loading || submitting || participants.length === 0}
             className="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? 'Creating...' : 'Create Game'}
