@@ -29,6 +29,7 @@ interface Player {
 }
 
 interface GameParticipant {
+  id?: string;
   playerId: string;
   deckId: string;
   won: boolean;
@@ -54,6 +55,7 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
       setLocation(initialData.location || '');
       setParticipants(
         initialData.participants.map(p => ({
+          id: p.id,
           playerId: p.playerId,
           deckId: p.deckId,
           won: p.won,
@@ -159,40 +161,41 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
 
       // Update or insert participants
       for (const participant of participants) {
-        const existingId = existingParticipantMap.get(participant.playerId);
-
-        if (existingId) {
-          // Update existing participant
+        if (participant.id) {
+          // Update existing
           const { error: updateError } = await supabase
             .from('game_participants')
             .update({
               deck_id: participant.deckId,
-              won: participant.won
+              won: participant.won,
             })
-            .eq('id', existingId);
-
+            .eq('id', participant.id);
+      
           if (updateError) throw updateError;
         } else {
-          // Insert new participant
+          // Insert new
           const { error: insertError } = await supabase
             .from('game_participants')
             .insert({
               game_id: gameId,
               player_id: participant.playerId,
               deck_id: participant.deckId,
-              won: participant.won
+              won: participant.won,
             });
-
+      
           if (insertError) throw insertError;
         }
       }
 
       // Delete participants that are no longer in the game
-      const currentParticipantIds = participants.map(p => p.playerId);
-      if (existingParticipants && existingParticipants.length > 0) {
-        const participantsToRemove = existingParticipants
-          .filter(p => !currentParticipantIds.includes(p.player_id))
-          .map(p => p.id);
+      const participantIds = participants.map(p => p.id).filter(Boolean);
+      const existingIds = existingParticipants?.map(p => p.id) || [];
+
+      const participantsToRemove = existingIds.filter(
+        id => !participantIds.includes(id)
+      );
+
+      if (existingIds && participants.length > 0) {
 
         if (participantsToRemove.length > 0) {
           const { error: deleteError } = await supabase
