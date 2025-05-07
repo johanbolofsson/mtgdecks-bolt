@@ -154,11 +154,6 @@ function EditGameModal({ isOpen, onClose, gameId, initialData }: EditGameModalPr
 
       if (existingError) throw existingError;
 
-      // Create a map of existing participants for quick lookup
-      const existingParticipantMap = new Map(
-        existingParticipants?.map(p => [p.player_id, p.id]) || []
-      );
-
       // Update or insert participants
       for (const participant of participants) {
         if (participant.id) {
